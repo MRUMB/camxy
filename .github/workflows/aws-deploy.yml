@@ -1,35 +1,35 @@
-name: Deploy Backend to EC2
+name: Build & Deploy Backend
 
 on:
   push:
     branches:
-      - main  # or your backend branch
+      - main   # change if your main branch has a different name
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repo
-      - name: Checkout
+      # 1️⃣ Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Node
-      - name: Setup Node
+      # 2️⃣ Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3. Install dependencies
+      # 3️⃣ Install dependencies
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # 4. Compile backend
+      # 4️⃣ Compile backend
       - name: Compile backend
-        run: npx tsc -p tsconfig.backend.json
+        run: npx tsc
 
-      # 5. Copy compiled files to EC2 via SSH
-      - name: Deploy to EC2
+      # 5️⃣ Copy compiled files to EC2
+      - name: Deploy compiled JS to EC2
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -39,8 +39,8 @@ jobs:
           source: "dist/**"
           target: "/home/ubuntu/camxy/dist"
 
-      # 6. Restart PM2 on EC2
-      - name: Restart PM2
+      # 6️⃣ Restart PM2 on EC2
+      - name: Restart backend on EC2
         uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
