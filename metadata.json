@@ -1,0 +1,5 @@
+{
+  "name": "RandomChat",
+  "description": "An Omegle-style random video chat application with a fallback stream.",
+  "requestFramePermissions": ["camera", "microphone"]
+}
