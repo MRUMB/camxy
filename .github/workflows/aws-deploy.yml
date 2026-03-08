@@ -3,14 +3,14 @@ name: Build & Deploy Backend
 on:
   push:
     branches:
-      - main  # or your main branch name
+      - main  # or your default branch
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -24,17 +24,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 4️⃣ Compile backend TypeScript
-      - name: Compile backend
-        run: |
-          npx tsc
+      # 4️⃣ Compile backend
+      - name: Compile backend TypeScript
+        run: npx tsc
 
-      # 5️⃣ Verify dist folder exists
-      - name: List compiled files
+      # 5️⃣ List compiled files (optional debug)
+      - name: List dist folder
         run: ls -R dist/
 
-      # 6️⃣ Deploy compiled JS to EC2
-      - name: Deploy compiled JS to EC2
+      # 6️⃣ Copy compiled files to EC2
+      - name: Deploy backend to EC2
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -44,7 +43,7 @@ jobs:
           source: "dist/**"
           target: "/home/ubuntu/camxy/dist"
 
-      # 7️⃣ Restart PM2 backend on EC2
+      # 7️⃣ Restart backend using PM2 on EC2
       - name: Restart backend on EC2
         uses: appleboy/ssh-action@v0.1.6
         with:
