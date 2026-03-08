@@ -10,20 +10,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup Node.js
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: npm install
 
+      # 4️⃣ Build Vite
       - name: Build Vite
         run: npm run build
 
+      # 5️⃣ Debug: List build folder
+      - name: List build folder
+        run: |
+          if [ ! -d dist ] || [ -z "$(ls -A dist)" ]; then
+            echo "Error: Build folder 'dist/' is missing or empty!"
+            exit 1
+          fi
+          echo "Build folder contents:"
+          ls -R dist
+
+      # 6️⃣ Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -31,6 +46,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # 7️⃣ Deploy to S3
       - name: Deploy to S3
         run: |
+          echo "Deploying to S3 bucket: ${{ secrets.AWS_S3_BUCKET }}"
           aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
+          echo "Deployment complete!"
