@@ -43,8 +43,13 @@ jobs:
         run: |
           aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
 
-      - name: Deploy Lambda
-        run: |
-          aws lambda update-function-code \
-          --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
-          --zip-file fileb://lambda/lambda.zip
+      - name: Upload Lambda package to S3
+  run: |
+    aws s3 cp lambda/lambda.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda.zip
+
+- name: Deploy Lambda
+  run: |
+    aws lambda update-function-code \
+      --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
+      --s3-bucket ${{ secrets.AWS_S3_BUCKET }} \
+      --s3-key lambda.zip
