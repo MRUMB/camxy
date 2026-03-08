@@ -1,55 +1,53 @@
-name: AWS Deploy
+name: Deploy Backend to EC2
 
 on:
   push:
     branches:
-      - main
+      - main  # or your backend branch
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # 1. Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
+      # 2. Setup Node
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: npm install
 
-      - name: Build frontend
-        run: npm run build
+      # 4. Compile backend
+      - name: Compile backend
+        run: npx tsc -p tsconfig.backend.json
 
-      - name: Prepare Lambda package
-        run: |
-          mkdir lambda
-          cp server.ts package.json package-lock.json lambda/
-          cd lambda
-          npm install --omit=dev
-          zip -r lambda.zip .
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # 5. Copy compiled files to EC2 via SSH
+      - name: Deploy to EC2
+        uses: appleboy/scp-action@v0.1.6
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          source: "dist/**"
+          target: "/home/ubuntu/camxy/dist"
 
-      - name: Deploy frontend to S3
-        run: |
-          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
-
-      - name: Upload Lambda package to S3
-  run: |
-    aws s3 cp lambda/lambda.zip s3://${{ secrets.AWS_S3_BUCKET }}/lambda.zip
-
-- name: Deploy Lambda
-  run: |
-    aws lambda update-function-code \
-      --function-name ${{ secrets.LAMBDA_FUNCTION_NAME }} \
-      --s3-bucket ${{ secrets.AWS_S3_BUCKET }} \
-      --s3-key lambda.zip
+      # 6. Restart PM2 on EC2
+      - name: Restart PM2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            pm2 stop camxy-backend || true
+            pm2 start /home/ubuntu/camxy/dist/server.js --name camxy-backend
+            pm2 save
